@@ -14,7 +14,13 @@ const INITIAL_USERS = [
     role: UserRole.SEEKER,
     skills: ['React', 'JavaScript', 'HTML/CSS', 'Frontend'],
     experience: '3 years of experience building web apps with React.',
-    bio: 'Passionate frontend developer looking for challenging React roles.'
+    bio: 'Passionate frontend developer looking for challenging React roles.',
+    phoneNumber: '555-0101',
+    address: 'San Francisco, CA',
+    socialLinks: {
+      github: 'https://github.com/alexj',
+      linkedin: 'https://linkedin.com/in/alexj'
+    }
   },
   {
     id: 'seeker2',
@@ -42,7 +48,9 @@ const INITIAL_USERS = [
     email: 'sarah@technova.com',
     passwordHash: 'cGFzc3dvcmQ=',
     role: UserRole.EMPLOYER,
-    companyName: 'TechNova'
+    companyName: 'TechNova',
+    companyDescription: 'Leading innovator in AI and robotics systems.',
+    website: 'https://technova.com'
   },
   {
     id: 'emp2',
@@ -50,7 +58,9 @@ const INITIAL_USERS = [
     email: 'david@greenearth.com',
     passwordHash: 'cGFzc3dvcmQ=',
     role: UserRole.EMPLOYER,
-    companyName: 'GreenEarth'
+    companyName: 'GreenEarth',
+    companyDescription: 'Dedicated to preserving our planet through data-driven solutions.',
+    website: 'https://greenearth.org'
   }
 ];
 
@@ -72,26 +82,26 @@ export const authService = {
   login: (email: string, password: string): User => {
     const users = authService.getAllUsers();
     const hashedPassword = hashPassword(password);
-    
+
     // In a real app, this lookup would happen securely on the backend
     const user = users.find(u => u.email.toLowerCase() === email.toLowerCase() && (u as any).passwordHash === hashedPassword);
-    
+
     if (!user) {
       throw new Error('Invalid email or password');
     }
 
     // Remove password hash from returned object for security
     const { passwordHash, ...safeUser } = user as any;
-    
+
     // Persist session
     localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(safeUser));
-    
+
     return safeUser;
   },
 
   register: (data: Omit<User, 'id'> & { password: string }): User => {
     const users = authService.getAllUsers();
-    
+
     if (users.some(u => u.email.toLowerCase() === data.email.toLowerCase())) {
       throw new Error('Email already registered');
     }
@@ -101,18 +111,47 @@ export const authService = {
       id: Math.random().toString(36).substr(2, 9),
       passwordHash: hashPassword(data.password)
     };
-    
+
     // Remove password field from data object to avoid storing plain text
     delete (newUser as any).password;
 
     users.push(newUser);
     localStorage.setItem(USERS_KEY, JSON.stringify(users));
-    
+
     // Auto login
     const { passwordHash, ...safeUser } = newUser;
     localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(safeUser));
-    
+
     return safeUser;
+  },
+
+  updateUser: (updatedUser: User): User => {
+    const users = authService.getAllUsers();
+    const index = users.findIndex(u => u.id === updatedUser.id);
+
+    if (index === -1) {
+      throw new Error('User not found');
+    }
+
+    // Preserve the password hash
+    const existingUser = users[index];
+    const passwordHash = (existingUser as any).passwordHash;
+
+    const userToSave = {
+      ...updatedUser,
+      passwordHash
+    };
+
+    users[index] = userToSave;
+    localStorage.setItem(USERS_KEY, JSON.stringify(users));
+
+    // Update session if it's the current user
+    const currentUser = authService.getCurrentUser();
+    if (currentUser && currentUser.id === updatedUser.id) {
+      localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(updatedUser));
+    }
+
+    return updatedUser;
   },
 
   logout: () => {

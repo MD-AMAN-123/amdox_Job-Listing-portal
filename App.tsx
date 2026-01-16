@@ -3,6 +3,7 @@ import { Navbar } from './components/Navbar';
 import { Home } from './views/Home';
 import { JobDetails } from './views/JobDetails';
 import { Dashboard } from './views/Dashboard';
+import { Profile } from './views/Profile';
 import { Login } from './views/Login';
 import { Register } from './views/Register';
 import { Job, User, UserRole, ViewState, Application } from './types';
@@ -116,35 +117,40 @@ const App: React.FC = () => {
   };
 
   const handleUpdateAppStatus = (appId: string, status: Application['status']) => {
-    setApplications(applications.map(app => 
+    setApplications(applications.map(app =>
       app.id === appId ? { ...app, status } : app
     ));
+  };
+
+  const handleUpdateUser = (updatedUser: User) => {
+    const savedUser = authService.updateUser(updatedUser);
+    setUser(savedUser);
   };
 
   // View Routing Logic
   if (view.name === 'LOGIN') {
     return (
-      <Login 
-        onLogin={handleLoginSuccess} 
-        onNavigate={setView} 
+      <Login
+        onLogin={handleLoginSuccess}
+        onNavigate={setView}
       />
     );
   }
 
   if (view.name === 'REGISTER') {
     return (
-      <Register 
-        onRegister={handleLoginSuccess} 
-        onNavigate={setView} 
+      <Register
+        onRegister={handleLoginSuccess}
+        onNavigate={setView}
       />
     );
   }
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans text-gray-900">
-      <Navbar 
-        user={user} 
-        onNavigate={setView} 
+      <Navbar
+        user={user}
+        onNavigate={setView}
         onLogout={handleLogout}
         onLoginClick={() => setView({ name: 'LOGIN' })}
       />
@@ -155,8 +161,8 @@ const App: React.FC = () => {
         )}
 
         {view.name === 'JOB_DETAILS' && (
-          <JobDetails 
-            job={jobs.find(j => j.id === view.jobId)!} 
+          <JobDetails
+            job={jobs.find(j => j.id === view.jobId)!}
             user={user}
             onNavigate={setView}
             onApply={handleApply}
@@ -165,9 +171,9 @@ const App: React.FC = () => {
         )}
 
         {view.name === 'DASHBOARD' && user && (
-          <Dashboard 
-            user={user} 
-            jobs={jobs} 
+          <Dashboard
+            user={user}
+            jobs={jobs}
             applications={applications}
             allUsers={allUsers}
             onPostJob={handlePostJob}
@@ -175,8 +181,16 @@ const App: React.FC = () => {
             onUpdateApplicationStatus={handleUpdateAppStatus}
           />
         )}
+
+        {view.name === 'PROFILE' && user && (
+          <Profile
+            user={user}
+            onUpdateUser={handleUpdateUser}
+            onNavigate={setView}
+          />
+        )}
       </main>
-      
+
       <footer className="bg-white border-t border-gray-200 mt-auto py-8">
         <div className="max-w-7xl mx-auto px-4 text-center text-gray-500 text-sm">
           &copy; 2024 NexusJob AI. Powered by Google Gemini.

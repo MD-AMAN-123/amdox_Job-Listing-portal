@@ -10,10 +10,26 @@ export interface User {
   email: string;
   role: UserRole;
   avatar?: string;
-  bio?: string; // For seekers
-  skills?: string[]; // For recommendation engine
-  experience?: string; // For recommendation engine
-  companyName?: string; // For employers
+  phoneNumber?: string;
+  address?: string;
+  socialLinks?: {
+    linkedin?: string;
+    github?: string;
+    portfolio?: string;
+    twitter?: string;
+  };
+
+  // For seekers
+  bio?: string;
+  skills?: string[];
+  experience?: string;
+  resumeUrl?: string;
+
+  // For employers
+  companyName?: string;
+  companyDescription?: string;
+  website?: string;
+  logoUrl?: string;
 }
 
 export interface Job {
@@ -40,9 +56,10 @@ export interface Application {
   coverLetter?: string;
 }
 
-export type ViewState = 
+export type ViewState =
   | { name: 'HOME' }
   | { name: 'JOB_DETAILS'; jobId: string }
   | { name: 'DASHBOARD' }
+  | { name: 'PROFILE' }
   | { name: 'LOGIN' }
   | { name: 'REGISTER' };

@@ -16,8 +16,8 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onNavigate, onLogout, onLo
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex">
-            <div 
-              className="flex-shrink-0 flex items-center cursor-pointer" 
+            <div
+              className="flex-shrink-0 flex items-center cursor-pointer"
               onClick={() => onNavigate({ name: 'HOME' })}
             >
               <Briefcase className="h-8 w-8 text-primary-600" />
@@ -28,12 +28,16 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onNavigate, onLogout, onLo
             <Button variant="outline" size="sm" onClick={() => onNavigate({ name: 'HOME' })}>
               Find Jobs
             </Button>
-            
+
             {user ? (
               <>
                 <Button variant="outline" size="sm" onClick={() => onNavigate({ name: 'DASHBOARD' })}>
                   <LayoutDashboard className="h-4 w-4 mr-2" />
                   Dashboard
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => onNavigate({ name: 'PROFILE' })}>
+                  <UserIcon className="h-4 w-4 mr-2" />
+                  Profile
                 </Button>
                 <div className="flex items-center space-x-2 border-l pl-4 ml-2">
                   <div className="flex flex-col text-right hidden sm:block">

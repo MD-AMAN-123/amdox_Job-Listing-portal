@@ -177,6 +177,7 @@ const App: React.FC = () => {
             applications={applications}
             allUsers={allUsers}
             onPostJob={handlePostJob}
+            onEditJob={(updatedJob) => setJobs(jobs.map(j => j.id === updatedJob.id ? updatedJob : j))}
             onDeleteJob={handleDeleteJob}
             onUpdateApplicationStatus={handleUpdateAppStatus}
           />

@@ -23,7 +23,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
     try {
       // Simulate network delay
       await new Promise(resolve => setTimeout(resolve, 800));
-      const user = authService.login(email, password);
+      const user = await authService.login(email, password);
       onLogin(user);
     } catch (err: any) {
       setError(err.message || 'Login failed');
@@ -72,9 +72,9 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
             />
           </div>
 
-          <Button 
-            type="submit" 
-            className="w-full h-12 text-lg" 
+          <Button
+            type="submit"
+            className="w-full h-12 text-lg"
             isLoading={isLoading}
           >
             Sign In
@@ -90,21 +90,19 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
           </div>
 
           <div className="text-center">
-             <span className="text-gray-600">Don't have an account? </span>
-             <button 
-               type="button" 
-               onClick={() => onNavigate({ name: 'REGISTER' })}
-               className="text-primary-600 font-semibold hover:text-primary-800 transition-colors"
-             >
-               Sign Up
-             </button>
+            <span className="text-gray-600">Don't have an account? </span>
+            <button
+              type="button"
+              onClick={() => onNavigate({ name: 'REGISTER' })}
+              className="text-primary-600 font-semibold hover:text-primary-800 transition-colors"
+            >
+              Sign Up
+            </button>
           </div>
         </form>
-        
+
         <div className="mt-6 text-center text-xs text-gray-400">
-          <p>Demo Credentials:</p>
-          <p>Seeker: alex@example.com / password</p>
-          <p>Employer: sarah@technova.com / password</p>
+          <p>Please register a new account to started with the database.</p>
         </div>
       </div>
     </div>

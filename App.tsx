@@ -7,127 +7,141 @@ import { Profile } from './views/Profile';
 import { Login } from './views/Login';
 import { Register } from './views/Register';
 import { Job, User, UserRole, ViewState, Application } from './types';
-import { Button } from './components/ui/Button';
 import { authService } from './services/authService';
-
-// Mock Jobs (kept static for demo content, though typically this would also be fetched)
-const MOCK_JOBS: Job[] = [
-  {
-    id: '1',
-    employerId: 'emp1',
-    companyName: 'TechNova',
-    title: 'Senior React Developer',
-    location: 'San Francisco, CA',
-    type: 'Full-time',
-    salaryRange: '$140k - $180k',
-    description: 'We are seeking a highly skilled Senior React Developer to join our dynamic team. You will be responsible for building scalable web applications, optimizing front-end performance, and mentoring junior developers. We use the latest stack including React 18, TypeScript, and Tailwind.',
-    requirements: ['5+ years of experience with React', 'Strong TypeScript skills', 'Experience with state management', 'Knowledge of modern build tools'],
-    postedAt: new Date(),
-    tags: ['React', 'TypeScript', 'Frontend']
-  },
-  {
-    id: '2',
-    employerId: 'emp2',
-    companyName: 'GreenEarth',
-    title: 'Sustainability Analyst',
-    location: 'Remote',
-    type: 'Contract',
-    salaryRange: '$50/hr',
-    description: 'Help us analyze environmental data to improve our sustainability initiatives. You will work with large datasets, generate reports, and provide actionable insights for our clients.',
-    requirements: ['Degree in Environmental Science', 'Data analysis experience', 'Proficiency in Python or R', 'Strong communication skills'],
-    postedAt: new Date(Date.now() - 86400000),
-    tags: ['Data', 'Environment', 'Analytics']
-  },
-  {
-    id: '3',
-    employerId: 'emp1',
-    companyName: 'TechNova',
-    title: 'UX/UI Designer',
-    location: 'New York, NY',
-    type: 'Full-time',
-    salaryRange: '$100k - $130k',
-    description: 'Join our design team to create intuitive and beautiful user experiences. You will collaborate with product managers and engineers to define and implement innovative solutions.',
-    requirements: ['Portfolio demonstrating strong UX skills', 'Experience with Figma', 'Understanding of accessible design', 'Creative problem solving'],
-    postedAt: new Date(Date.now() - 172800000),
-    tags: ['Design', 'UX', 'Figma']
-  }
-];
+import { jobService } from './services/jobService';
 
 const App: React.FC = () => {
   const [view, setView] = useState<ViewState>({ name: 'HOME' });
   const [user, setUser] = useState<User | null>(null);
-  const [jobs, setJobs] = useState<Job[]>(MOCK_JOBS);
+  const [jobs, setJobs] = useState<Job[]>([]);
   const [applications, setApplications] = useState<Application[]>([]);
   const [allUsers, setAllUsers] = useState<User[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Initialize Auth Service
+  // Initialize: Check Auth & Load Data
   useEffect(() => {
-    authService.initialize();
-    const currentUser = authService.getCurrentUser();
-    if (currentUser) {
-      setUser(currentUser);
-    }
-    setAllUsers(authService.getAllUsers());
+    const init = async () => {
+      try {
+        const currentUser = await authService.initialize();
+        if (currentUser) {
+          // Re-fetch full user profile to get roles etc
+          const fullUser = await authService.getCurrentUser(currentUser.id);
+          setUser(fullUser);
+        }
+
+        await loadData();
+      } catch (error) {
+        console.error("Initialization error:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    init();
   }, []);
 
-  // Sync users when switching views to ensure recommendations are up to date
+  const loadData = async () => {
+    try {
+      const [fetchedJobs, fetchedApps, fetchedUsers] = await Promise.all([
+        jobService.getJobs(),
+        jobService.getAllApplications(),
+        authService.getAllUsers()
+      ]);
+      setJobs(fetchedJobs);
+      setApplications(fetchedApps);
+      setAllUsers(fetchedUsers);
+    } catch (error) {
+      console.error("Error loading data:", error);
+    }
+  };
+
+  // Sync users/data when switching views or just keep them typically synced?
+  // We can re-fetch occasionally. For now, init is enough or trigger on actions.
   useEffect(() => {
-    setAllUsers(authService.getAllUsers());
-  }, [view]);
+    if (view.name === 'DASHBOARD' || view.name === 'HOME') {
+      loadData();
+    }
+  }, [view.name]);
 
   const handleLoginSuccess = (loggedInUser: User) => {
     setUser(loggedInUser);
     setView({ name: 'HOME' });
+    loadData();
   };
 
-  const handleLogout = () => {
-    authService.logout();
+  const handleLogout = async () => {
+    await authService.logout();
     setUser(null);
     setView({ name: 'HOME' });
   };
 
-  const handlePostJob = (jobData: Omit<Job, 'id' | 'postedAt' | 'employerId'>) => {
+  const handlePostJob = async (jobData: Omit<Job, 'id' | 'postedAt' | 'employerId'>) => {
     if (!user || user.role !== UserRole.EMPLOYER) return;
-    const newJob: Job = {
-      ...jobData,
-      id: Math.random().toString(36).substr(2, 9),
-      postedAt: new Date(),
-      employerId: user.id
-    };
-    setJobs([newJob, ...jobs]);
+
+    try {
+      const newJob = await jobService.createJob({
+        ...jobData,
+        employerId: user.id
+      });
+      setJobs([newJob, ...jobs]);
+    } catch (error) {
+      console.error("Error posting job:", error);
+      alert("Failed to post job");
+    }
   };
 
-  const handleDeleteJob = (id: string) => {
-    setJobs(jobs.filter(j => j.id !== id));
+  const handleDeleteJob = async (id: string) => {
+    try {
+      await jobService.deleteJob(id);
+      setJobs(jobs.filter(j => j.id !== id));
+    } catch (error) {
+      console.error("Error deleting job:", error);
+    }
   };
 
-  const handleApply = (jobId: string, coverLetter: string) => {
+  const handleApply = async (jobId: string, coverLetter: string) => {
     if (!user || user.role !== UserRole.SEEKER) return;
-    const newApp: Application = {
-      id: Math.random().toString(36).substr(2, 9),
-      jobId,
-      seekerId: user.id,
-      seekerName: user.name,
-      status: 'Pending',
-      appliedAt: new Date(),
-      coverLetter
-    };
-    setApplications([...applications, newApp]);
-    setView({ name: 'DASHBOARD' });
+
+    try {
+      const newApp = await jobService.createApplication({
+        jobId,
+        seekerId: user.id,
+        seekerName: user.name,
+        coverLetter
+      });
+      setApplications([...applications, newApp]);
+      setView({ name: 'DASHBOARD' });
+    } catch (error) {
+      console.error("Error applying:", error);
+      alert("Failed to apply for job");
+    }
   };
 
-  const handleUpdateAppStatus = (appId: string, status: Application['status']) => {
-    setApplications(applications.map(app =>
-      app.id === appId ? { ...app, status } : app
-    ));
+  const handleUpdateAppStatus = async (appId: string, status: Application['status']) => {
+    try {
+      await jobService.updateApplicationStatus(appId, status);
+      setApplications(applications.map(app =>
+        app.id === appId ? { ...app, status } : app
+      ));
+    } catch (error) {
+      console.error("Error updating status:", error);
+    }
   };
 
-  const handleUpdateUser = (updatedUser: User) => {
-    const savedUser = authService.updateUser(updatedUser);
-    setUser(savedUser);
+  const handleUpdateUser = async (updatedUser: User) => {
+    try {
+      const savedUser = await authService.updateUser(updatedUser);
+      setUser(savedUser);
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      alert("Failed to update profile");
+    }
   };
 
   // View Routing Logic
+  if (isLoading) {
+    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  }
+
   if (view.name === 'LOGIN') {
     return (
       <Login
@@ -177,7 +191,15 @@ const App: React.FC = () => {
             applications={applications}
             allUsers={allUsers}
             onPostJob={handlePostJob}
-            onEditJob={(updatedJob) => setJobs(jobs.map(j => j.id === updatedJob.id ? updatedJob : j))}
+            onEditJob={async (updatedJob) => {
+              try {
+                const savedJob = await jobService.updateJob(updatedJob);
+                setJobs(jobs.map(j => j.id === savedJob.id ? savedJob : j));
+              } catch (error) {
+                console.error("Error updating job:", error);
+                alert("Failed to update job");
+              }
+            }}
             onDeleteJob={handleDeleteJob}
             onUpdateApplicationStatus={handleUpdateAppStatus}
           />

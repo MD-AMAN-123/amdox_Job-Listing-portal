@@ -1,165 +1,130 @@
+import { supabase } from './supabaseClient';
 import { User, UserRole } from '../types';
 
-const USERS_KEY = 'nexus_job_users';
-const CURRENT_USER_KEY = 'nexus_job_session';
-
-// Mock initial data with passwords (in a real app, passwords would be hashed)
-// We use a simple hash simulation here for demonstration
-const INITIAL_USERS = [
-  {
-    id: 'seeker1',
-    name: 'Alex Johnson',
-    email: 'alex@example.com',
-    passwordHash: 'cGFzc3dvcmQ=', // 'password' in base64
-    role: UserRole.SEEKER,
-    skills: ['React', 'JavaScript', 'HTML/CSS', 'Frontend'],
-    experience: '3 years of experience building web apps with React.',
-    bio: 'Passionate frontend developer looking for challenging React roles.',
-    phoneNumber: '555-0101',
-    address: 'San Francisco, CA',
-    socialLinks: {
-      github: 'https://github.com/alexj',
-      linkedin: 'https://linkedin.com/in/alexj'
-    }
-  },
-  {
-    id: 'seeker2',
-    name: 'Maria Garcia',
-    email: 'maria@example.com',
-    passwordHash: 'cGFzc3dvcmQ=',
-    role: UserRole.SEEKER,
-    skills: ['Data Analysis', 'Python', 'Environmental Science', 'Statistics'],
-    experience: '5 years in environmental data analysis.',
-    bio: 'Data scientist with a focus on sustainability and climate change.'
-  },
-  {
-    id: 'seeker3',
-    name: 'Sam Lee',
-    email: 'sam@example.com',
-    passwordHash: 'cGFzc3dvcmQ=',
-    role: UserRole.SEEKER,
-    skills: ['UI Design', 'Figma', 'Prototyping', 'User Research'],
-    experience: 'Mid-level designer with a strong portfolio.',
-    bio: 'Creative UX/UI designer focused on accessibility.'
-  },
-  {
-    id: 'emp1',
-    name: 'Sarah Connor',
-    email: 'sarah@technova.com',
-    passwordHash: 'cGFzc3dvcmQ=',
-    role: UserRole.EMPLOYER,
-    companyName: 'TechNova',
-    companyDescription: 'Leading innovator in AI and robotics systems.',
-    website: 'https://technova.com'
-  },
-  {
-    id: 'emp2',
-    name: 'David Chen',
-    email: 'david@greenearth.com',
-    passwordHash: 'cGFzc3dvcmQ=',
-    role: UserRole.EMPLOYER,
-    companyName: 'GreenEarth',
-    companyDescription: 'Dedicated to preserving our planet through data-driven solutions.',
-    website: 'https://greenearth.org'
-  }
-];
-
-// Helper to simulate hashing
-const hashPassword = (password: string) => btoa(password);
-
 export const authService = {
-  initialize: () => {
-    if (!localStorage.getItem(USERS_KEY)) {
-      localStorage.setItem(USERS_KEY, JSON.stringify(INITIAL_USERS));
-    }
+  initialize: async () => {
+    // Check for existing session
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.user || null;
   },
 
-  getAllUsers: (): User[] => {
-    const usersStr = localStorage.getItem(USERS_KEY);
-    return usersStr ? JSON.parse(usersStr) : INITIAL_USERS;
+  getAllUsers: async (): Promise<User[]> => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*');
+
+    if (error) throw error;
+    return data.map(mapProfileToUser);
   },
 
-  login: (email: string, password: string): User => {
-    const users = authService.getAllUsers();
-    const hashedPassword = hashPassword(password);
+  login: async (email: string, password: string): Promise<User> => {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
-    // In a real app, this lookup would happen securely on the backend
-    const user = users.find(u => u.email.toLowerCase() === email.toLowerCase() && (u as any).passwordHash === hashedPassword);
+    if (error) throw error;
+    if (!data.user) throw new Error('Login failed');
 
-    if (!user) {
-      throw new Error('Invalid email or password');
-    }
-
-    // Remove password hash from returned object for security
-    const { passwordHash, ...safeUser } = user as any;
-
-    // Persist session
-    localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(safeUser));
-
-    return safeUser;
+    return authService.getCurrentUser(data.user.id) as Promise<User>;
   },
 
-  register: (data: Omit<User, 'id'> & { password: string }): User => {
-    const users = authService.getAllUsers();
+  register: async (data: Omit<User, 'id'> & { password: string }): Promise<User> => {
+    // 1. Sign up with Supabase Auth
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email: data.email,
+      password: data.password,
+    });
 
-    if (users.some(u => u.email.toLowerCase() === data.email.toLowerCase())) {
-      throw new Error('Email already registered');
-    }
+    if (authError) throw authError;
+    if (!authData.user) throw new Error('Registration failed');
 
-    const newUser = {
-      ...data,
-      id: Math.random().toString(36).substr(2, 9),
-      passwordHash: hashPassword(data.password)
+    // 2. Create Profile entry
+    const profileData = {
+      id: authData.user.id,
+      email: data.email,
+      name: data.name,
+      role: data.role,
+      phone_number: data.phoneNumber,
+      address: data.address,
+      bio: data.bio,
+      skills: data.skills,
+      experience: data.experience,
+      company_name: data.companyName,
+      company_description: data.companyDescription,
+      website: data.website,
+      social_links: data.socialLinks
     };
 
-    // Remove password field from data object to avoid storing plain text
-    delete (newUser as any).password;
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .insert([profileData]);
 
-    users.push(newUser);
-    localStorage.setItem(USERS_KEY, JSON.stringify(users));
+    if (profileError) {
+      // Cleanup auth user if profile creation fails? For now just throw.
+      throw profileError;
+    }
 
-    // Auto login
-    const { passwordHash, ...safeUser } = newUser;
-    localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(safeUser));
-
-    return safeUser;
+    return { ...data, id: authData.user.id };
   },
 
-  updateUser: (updatedUser: User): User => {
-    const users = authService.getAllUsers();
-    const index = users.findIndex(u => u.id === updatedUser.id);
-
-    if (index === -1) {
-      throw new Error('User not found');
-    }
-
-    // Preserve the password hash
-    const existingUser = users[index];
-    const passwordHash = (existingUser as any).passwordHash;
-
-    const userToSave = {
-      ...updatedUser,
-      passwordHash
+  updateUser: async (updatedUser: User): Promise<User> => {
+    const profileData = {
+      name: updatedUser.name,
+      phone_number: updatedUser.phoneNumber,
+      address: updatedUser.address,
+      bio: updatedUser.bio,
+      skills: updatedUser.skills,
+      experience: updatedUser.experience,
+      company_name: updatedUser.companyName,
+      company_description: updatedUser.companyDescription,
+      website: updatedUser.website,
+      social_links: updatedUser.socialLinks
     };
 
-    users[index] = userToSave;
-    localStorage.setItem(USERS_KEY, JSON.stringify(users));
+    const { error } = await supabase
+      .from('profiles')
+      .update(profileData)
+      .eq('id', updatedUser.id);
 
-    // Update session if it's the current user
-    const currentUser = authService.getCurrentUser();
-    if (currentUser && currentUser.id === updatedUser.id) {
-      localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(updatedUser));
-    }
-
+    if (error) throw error;
     return updatedUser;
   },
 
-  logout: () => {
-    localStorage.removeItem(CURRENT_USER_KEY);
+  logout: async () => {
+    await supabase.auth.signOut();
   },
 
-  getCurrentUser: (): User | null => {
-    const userStr = localStorage.getItem(CURRENT_USER_KEY);
-    return userStr ? JSON.parse(userStr) : null;
+  getCurrentUser: async (userId?: string): Promise<User | null> => {
+    const id = userId || (await supabase.auth.getUser()).data.user?.id;
+    if (!id) return null;
+
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error || !data) return null;
+    return mapProfileToUser(data);
   }
 };
+
+const mapProfileToUser = (p: any): User => ({
+  id: p.id,
+  name: p.name,
+  email: p.email,
+  role: p.role as UserRole,
+  avatar: p.avatar,
+  phoneNumber: p.phone_number,
+  address: p.address,
+  socialLinks: p.social_links,
+  bio: p.bio,
+  skills: p.skills,
+  experience: p.experience,
+  resumeUrl: p.resume_url,
+  companyName: p.company_name,
+  companyDescription: p.company_description,
+  website: p.website,
+  logoUrl: p.logo_url
+});

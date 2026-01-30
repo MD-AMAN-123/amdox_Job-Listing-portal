@@ -48,8 +48,8 @@ export const Register: React.FC<RegisterProps> = ({ onRegister, onNavigate }) =>
     try {
       // Simulate network delay
       await new Promise(resolve => setTimeout(resolve, 800));
-      
-      const user = authService.register({
+
+      const user = await authService.register({
         name: formData.name,
         email: formData.email,
         password: formData.password,
@@ -60,7 +60,7 @@ export const Register: React.FC<RegisterProps> = ({ onRegister, onNavigate }) =>
         experience: '',
         bio: ''
       });
-      
+
       onRegister(user);
     } catch (err: any) {
       setError(err.message || 'Registration failed');
@@ -93,9 +93,9 @@ export const Register: React.FC<RegisterProps> = ({ onRegister, onNavigate }) =>
             Job Seeker
           </button>
           <button
-             type="button"
-             className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${formData.role === UserRole.EMPLOYER ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-             onClick={() => handleRoleSelect(UserRole.EMPLOYER)}
+            type="button"
+            className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${formData.role === UserRole.EMPLOYER ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+            onClick={() => handleRoleSelect(UserRole.EMPLOYER)}
           >
             Employer
           </button>
@@ -129,7 +129,7 @@ export const Register: React.FC<RegisterProps> = ({ onRegister, onNavigate }) =>
           </div>
 
           {formData.role === UserRole.EMPLOYER && (
-             <div>
+            <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Company Name</label>
               <input
                 type="text"
@@ -170,23 +170,23 @@ export const Register: React.FC<RegisterProps> = ({ onRegister, onNavigate }) =>
             </div>
           </div>
 
-          <Button 
-            type="submit" 
-            className="w-full h-12 text-lg mt-2" 
+          <Button
+            type="submit"
+            className="w-full h-12 text-lg mt-2"
             isLoading={isLoading}
           >
             Create Account
           </Button>
 
           <div className="text-center mt-6">
-             <span className="text-gray-600">Already have an account? </span>
-             <button 
-               type="button" 
-               onClick={() => onNavigate({ name: 'LOGIN' })}
-               className="text-primary-600 font-semibold hover:text-primary-800 transition-colors"
-             >
-               Sign In
-             </button>
+            <span className="text-gray-600">Already have an account? </span>
+            <button
+              type="button"
+              onClick={() => onNavigate({ name: 'LOGIN' })}
+              className="text-primary-600 font-semibold hover:text-primary-800 transition-colors"
+            >
+              Sign In
+            </button>
           </div>
         </form>
       </div>

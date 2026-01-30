@@ -269,40 +269,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         )}
                       </div>
                       <div className="flex flex-col items-end gap-2 min-w-[120px]">
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium border
-                          ${app.status === 'Pending' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
-                            app.status === 'Accepted' ? 'bg-green-50 text-green-700 border-green-200' :
-                              app.status === 'Rejected' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-blue-50 text-blue-700 border-blue-200'}`}>
-                          {app.status}
-                        </span>
-                        {app.status === 'Pending' && (
-                          <div className="flex gap-2 mt-2">
-                            <Button size="sm" variant="outline" className="text-red-600 hover:bg-red-50 hover:border-red-200" onClick={() => onUpdateApplicationStatus(app.id, 'Rejected')}>Reject</Button>
-                            <Button
-                              size="sm"
-                              className="bg-green-600 hover:bg-green-700 text-white"
-                              onClick={async () => {
-                                onUpdateApplicationStatus(app.id, 'Accepted');
-                                // Create chat for accepted application
-                                try {
-                                  const existingChat = await chatService.getChatByApplicationId(app.id);
-                                  if (!existingChat) {
-                                    await chatService.createChat(app, job?.title || 'Position', user.id);
-                                  }
-                                } catch (error) {
-                                  console.error('Error creating chat:', error);
-                                }
-                              }}
-                            >
-                              Accept
-                            </Button>
-                          </div>
-                        )}
-                        {app.status === 'Accepted' && (
+                        {app.status === 'Accepted' ? (
                           <Button
                             size="sm"
-                            variant="outline"
-                            className="mt-2 text-primary-600 hover:bg-primary-50 hover:border-primary-300"
+                            className="bg-primary-600 hover:bg-primary-700 text-white shadow-sm flex items-center gap-2 group"
                             onClick={async () => {
                               try {
                                 const chat = await chatService.getChatByApplicationId(app.id);
@@ -314,9 +284,40 @@ export const Dashboard: React.FC<DashboardProps> = ({
                               }
                             }}
                           >
-                            <MessageCircle className="h-4 w-4 mr-2" />
-                            Chat
+                            <MessageCircle className="h-4 w-4 group-hover:scale-110 transition-transform" />
+                            Open Chat
                           </Button>
+                        ) : (
+                          <>
+                            <span className={`px-3 py-1 rounded-full text-xs font-medium border
+                              ${app.status === 'Pending' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
+                                app.status === 'Rejected' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-blue-50 text-blue-700 border-blue-200'}`}>
+                              {app.status}
+                            </span>
+                            {app.status === 'Pending' && (
+                              <div className="flex gap-2 mt-2">
+                                <Button size="sm" variant="outline" className="text-red-600 hover:bg-red-50 hover:border-red-200" onClick={() => onUpdateApplicationStatus(app.id, 'Rejected')}>Reject</Button>
+                                <Button
+                                  size="sm"
+                                  className="bg-green-600 hover:bg-green-700 text-white"
+                                  onClick={async () => {
+                                    onUpdateApplicationStatus(app.id, 'Accepted');
+                                    // Create chat for accepted application
+                                    try {
+                                      const existingChat = await chatService.getChatByApplicationId(app.id);
+                                      if (!existingChat) {
+                                        await chatService.createChat(app, job?.title || 'Position', user.id);
+                                      }
+                                    } catch (error) {
+                                      console.error('Error creating chat:', error);
+                                    }
+                                  }}
+                                >
+                                  Accept
+                                </Button>
+                              </div>
+                            )}
+                          </>
                         )}
                       </div>
                     </div>
@@ -574,34 +575,34 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       <p className="text-xs text-gray-400 mt-2">Applied {new Date(app.appliedAt).toLocaleDateString()}</p>
                     </div>
                     <div className="flex flex-col items-end gap-2">
-                      <span className={`inline-flex items-center px-4 py-1.5 rounded-full text-sm font-bold shadow-sm 
-                          ${app.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
-                          app.status === 'Accepted' ? 'bg-green-100 text-green-800' :
-                            app.status === 'Rejected' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'}`}>
-                        {app.status === 'Pending' && <Clock className="h-4 w-4 mr-2" />}
-                        {app.status === 'Accepted' && <CheckCircle className="h-4 w-4 mr-2" />}
-                        {app.status === 'Rejected' && <XCircle className="h-4 w-4 mr-2" />}
-                        {app.status}
-                      </span>
-                      {app.status === 'Accepted' && (
+                      {app.status === 'Accepted' ? (
                         <Button
                           size="sm"
-                          variant="outline"
-                          className="mt-2 text-primary-600 hover:bg-primary-50 hover:border-primary-300"
+                          className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-md hover:shadow-lg transition-all px-6 py-2 rounded-full flex items-center gap-2 group"
                           onClick={async () => {
                             try {
                               const chat = await chatService.getChatByApplicationId(app.id);
                               if (chat) {
                                 onNavigate({ name: 'CHAT', chatId: chat.id });
+                              } else {
+                                alert("Initialising chat... please wait a moment.");
                               }
                             } catch (error) {
                               console.error('Error opening chat:', error);
                             }
                           }}
                         >
-                          <MessageCircle className="h-4 w-4 mr-2" />
+                          <MessageCircle className="h-4 w-4 group-hover:scale-110 transition-transform" />
                           Chat with Employer
                         </Button>
+                      ) : (
+                        <span className={`inline-flex items-center px-4 py-1.5 rounded-full text-sm font-bold shadow-sm 
+                            ${app.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
+                            app.status === 'Rejected' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'}`}>
+                          {app.status === 'Pending' && <Clock className="h-4 w-4 mr-2" />}
+                          {app.status === 'Rejected' && <XCircle className="h-4 w-4 mr-2" />}
+                          {app.status}
+                        </span>
                       )}
                     </div>
                   </div>

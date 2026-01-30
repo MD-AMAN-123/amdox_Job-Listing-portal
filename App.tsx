@@ -20,6 +20,24 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   // Initialize: Check Auth & Load Data
+  // Subscribe to real-time application updates
+  useEffect(() => {
+    const unsubscribe = jobService.subscribeToApplications((updatedApp) => {
+      setApplications(prev => {
+        const index = prev.findIndex(a => a.id === updatedApp.id);
+        if (index >= 0) {
+          const newApps = [...prev];
+          newApps[index] = updatedApp;
+          return newApps;
+        } else {
+          return [...prev, updatedApp];
+        }
+      });
+    });
+
+    return () => unsubscribe();
+  }, []);
+
   useEffect(() => {
     const init = async () => {
       try {

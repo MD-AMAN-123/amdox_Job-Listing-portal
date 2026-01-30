@@ -100,6 +100,23 @@ export const jobService = {
             .update({ status })
             .eq('id', appId);
         if (error) throw error;
+    },
+
+    subscribeToApplications: (onUpdate: (app: Application) => void) => {
+        const channel = supabase
+            .channel('public:applications')
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'applications' },
+                (payload) => {
+                    onUpdate(mapDbAppToApp(payload.new));
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
     }
 };
 

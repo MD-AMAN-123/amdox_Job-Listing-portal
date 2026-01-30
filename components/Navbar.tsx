@@ -1,5 +1,5 @@
 import React from 'react';
-import { Briefcase, User as UserIcon, LogOut, LayoutDashboard } from 'lucide-react';
+import { Briefcase, User as UserIcon, LogOut, LayoutDashboard, MessageCircle } from 'lucide-react';
 import { User, UserRole, ViewState } from '../types';
 import { Button } from './ui/Button';
 
@@ -34,6 +34,10 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onNavigate, onLogout, onLo
                 <Button variant="outline" size="sm" onClick={() => onNavigate({ name: 'DASHBOARD' })}>
                   <LayoutDashboard className="h-4 w-4 mr-2" />
                   Dashboard
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => onNavigate({ name: 'CHAT', chatId: '' })}>
+                  <MessageCircle className="h-4 w-4 mr-2" />
+                  Messages
                 </Button>
                 <Button variant="outline" size="sm" onClick={() => onNavigate({ name: 'PROFILE' })}>
                   <UserIcon className="h-4 w-4 mr-2" />

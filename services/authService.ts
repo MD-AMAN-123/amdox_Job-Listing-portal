@@ -3,9 +3,13 @@ import { User, UserRole } from '../types';
 
 export const authService = {
   initialize: async () => {
-    // Check for existing session
-    const { data: { session } } = await supabase.auth.getSession();
-    return session?.user || null;
+    // Check for existing session safely
+    const { data, error } = await supabase.auth.getSession();
+    if (error) {
+      console.error("Auth session check failed:", error);
+      return null;
+    }
+    return data?.session?.user || null;
   },
 
   getAllUsers: async (): Promise<User[]> => {

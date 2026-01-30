@@ -26,7 +26,28 @@ export const Login: React.FC<LoginProps> = ({ onLogin, onNavigate }) => {
       const user = await authService.login(email, password);
       onLogin(user);
     } catch (err: any) {
-      setError(err.message || 'Login failed');
+      console.error('Login error:', err);
+
+      // Handle specific Supabase errors with user-friendly messages
+      let errorMessage = 'Login failed';
+
+      if (err.message) {
+        const msg = err.message.toLowerCase();
+
+        if (msg.includes('rate limit')) {
+          errorMessage = 'Too many login attempts. Please wait a few minutes and try again.';
+        } else if (msg.includes('invalid login') || msg.includes('invalid credentials')) {
+          errorMessage = 'Invalid email or password. Please check your credentials and try again.';
+        } else if (msg.includes('email not confirmed')) {
+          errorMessage = 'Please check your email and confirm your account before logging in.';
+        } else if (msg.includes('user not found')) {
+          errorMessage = 'No account found with this email. Please sign up first.';
+        } else {
+          errorMessage = err.message;
+        }
+      }
+
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }

@@ -63,7 +63,28 @@ export const Register: React.FC<RegisterProps> = ({ onRegister, onNavigate }) =>
 
       onRegister(user);
     } catch (err: any) {
-      setError(err.message || 'Registration failed');
+      console.error('Registration error:', err);
+
+      // Handle specific Supabase errors with user-friendly messages
+      let errorMessage = 'Registration failed';
+
+      if (err.message) {
+        const msg = err.message.toLowerCase();
+
+        if (msg.includes('rate limit')) {
+          errorMessage = 'Too many attempts. Please wait a few minutes and try again.';
+        } else if (msg.includes('already registered') || msg.includes('already exists')) {
+          errorMessage = 'This email is already registered. Try logging in instead.';
+        } else if (msg.includes('invalid email')) {
+          errorMessage = 'Please enter a valid email address.';
+        } else if (msg.includes('password')) {
+          errorMessage = 'Password must be at least 6 characters long.';
+        } else {
+          errorMessage = err.message;
+        }
+      }
+
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }

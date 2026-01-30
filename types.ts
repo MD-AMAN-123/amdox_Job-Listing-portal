@@ -54,6 +54,29 @@ export interface Application {
   status: 'Pending' | 'Reviewing' | 'Accepted' | 'Rejected';
   appliedAt: Date;
   coverLetter?: string;
+  chatId?: string; // Link to chat conversation if accepted
+}
+
+export interface Message {
+  id: string;
+  chatId: string;
+  senderId: string;
+  senderName: string;
+  content: string;
+  sentAt: Date;
+  read: boolean;
+}
+
+export interface Chat {
+  id: string;
+  applicationId: string;
+  employerId: string;
+  seekerId: string;
+  jobTitle: string;
+  lastMessage?: string;
+  lastMessageAt?: Date;
+  unreadCount: number;
+  createdAt: Date;
 }
 
 export type ViewState =
@@ -62,4 +85,5 @@ export type ViewState =
   | { name: 'DASHBOARD' }
   | { name: 'PROFILE' }
   | { name: 'LOGIN' }
-  | { name: 'REGISTER' };
+  | { name: 'REGISTER' }
+  | { name: 'CHAT'; chatId: string };

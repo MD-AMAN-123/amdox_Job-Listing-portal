@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Plus, Users, Briefcase, FileText, CheckCircle, Clock, XCircle, Sparkles, Loader2, Building, MapPin, Search, Edit2, Trash2 } from 'lucide-react';
-import { Job, User, UserRole, Application } from '../types';
+import { Plus, Users, Briefcase, FileText, CheckCircle, Clock, XCircle, Sparkles, Loader2, Building, MapPin, Search, Edit2, Trash2, MessageCircle } from 'lucide-react';
+import { Job, User, UserRole, Application, ViewState } from '../types';
 import { Button } from '../components/ui/Button';
 import { generateJobDescription, recommendJobs, recommendCandidates } from '../services/geminiService';
+import { chatService } from '../services/chatService';
 
 interface DashboardProps {
   user: User;
@@ -13,6 +14,7 @@ interface DashboardProps {
   onEditJob: (job: Job) => void;
   onDeleteJob: (id: string) => void;
   onUpdateApplicationStatus: (appId: string, status: Application['status']) => void;
+  onNavigate: (view: ViewState) => void;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({
@@ -23,7 +25,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
   onPostJob,
   onEditJob,
   onDeleteJob,
-  onUpdateApplicationStatus
+  onUpdateApplicationStatus,
+  onNavigate
 }) => {
   const [showPostModal, setShowPostModal] = useState(false);
   const [editingJob, setEditingJob] = useState<Job | null>(null);
@@ -275,8 +278,45 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         {app.status === 'Pending' && (
                           <div className="flex gap-2 mt-2">
                             <Button size="sm" variant="outline" className="text-red-600 hover:bg-red-50 hover:border-red-200" onClick={() => onUpdateApplicationStatus(app.id, 'Rejected')}>Reject</Button>
-                            <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white" onClick={() => onUpdateApplicationStatus(app.id, 'Accepted')}>Accept</Button>
+                            <Button
+                              size="sm"
+                              className="bg-green-600 hover:bg-green-700 text-white"
+                              onClick={async () => {
+                                onUpdateApplicationStatus(app.id, 'Accepted');
+                                // Create chat for accepted application
+                                try {
+                                  const existingChat = await chatService.getChatByApplicationId(app.id);
+                                  if (!existingChat) {
+                                    await chatService.createChat(app, job?.title || 'Position', user.id);
+                                  }
+                                } catch (error) {
+                                  console.error('Error creating chat:', error);
+                                }
+                              }}
+                            >
+                              Accept
+                            </Button>
                           </div>
+                        )}
+                        {app.status === 'Accepted' && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="mt-2 text-primary-600 hover:bg-primary-50 hover:border-primary-300"
+                            onClick={async () => {
+                              try {
+                                const chat = await chatService.getChatByApplicationId(app.id);
+                                if (chat) {
+                                  onNavigate({ name: 'CHAT', chatId: chat.id });
+                                }
+                              } catch (error) {
+                                console.error('Error opening chat:', error);
+                              }
+                            }}
+                          >
+                            <MessageCircle className="h-4 w-4 mr-2" />
+                            Chat
+                          </Button>
                         )}
                       </div>
                     </div>
@@ -533,7 +573,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       </div>
                       <p className="text-xs text-gray-400 mt-2">Applied {new Date(app.appliedAt).toLocaleDateString()}</p>
                     </div>
-                    <div className="text-right">
+                    <div className="flex flex-col items-end gap-2">
                       <span className={`inline-flex items-center px-4 py-1.5 rounded-full text-sm font-bold shadow-sm 
                           ${app.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
                           app.status === 'Accepted' ? 'bg-green-100 text-green-800' :
@@ -543,6 +583,26 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         {app.status === 'Rejected' && <XCircle className="h-4 w-4 mr-2" />}
                         {app.status}
                       </span>
+                      {app.status === 'Accepted' && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="mt-2 text-primary-600 hover:bg-primary-50 hover:border-primary-300"
+                          onClick={async () => {
+                            try {
+                              const chat = await chatService.getChatByApplicationId(app.id);
+                              if (chat) {
+                                onNavigate({ name: 'CHAT', chatId: chat.id });
+                              }
+                            } catch (error) {
+                              console.error('Error opening chat:', error);
+                            }
+                          }}
+                        >
+                          <MessageCircle className="h-4 w-4 mr-2" />
+                          Chat with Employer
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </li>

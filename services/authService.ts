@@ -38,10 +38,25 @@ export const authService = {
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: data.email,
       password: data.password,
+      options: {
+        // Skip email confirmation for development
+        emailRedirectTo: undefined,
+      }
     });
 
-    if (authError) throw authError;
-    if (!authData.user) throw new Error('Registration failed');
+    if (authError) {
+      console.error('Supabase auth error:', authError);
+      throw authError;
+    }
+
+    if (!authData.user) {
+      throw new Error('Registration failed - no user returned');
+    }
+
+    // Check if user needs email confirmation
+    if (authData.session === null) {
+      throw new Error('Please check your email to confirm your account before logging in.');
+    }
 
     // 2. Create Profile entry
     const profileData = {
@@ -65,8 +80,8 @@ export const authService = {
       .insert([profileData]);
 
     if (profileError) {
-      // Cleanup auth user if profile creation fails? For now just throw.
-      throw profileError;
+      console.error('Profile creation error:', profileError);
+      throw new Error(`Failed to create profile: ${profileError.message}`);
     }
 
     return { ...data, id: authData.user.id };

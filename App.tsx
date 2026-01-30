@@ -6,6 +6,7 @@ import { Dashboard } from './views/Dashboard';
 import { Profile } from './views/Profile';
 import { Login } from './views/Login';
 import { Register } from './views/Register';
+import { ChatView } from './views/ChatView';
 import { Job, User, UserRole, ViewState, Application } from './types';
 import { authService } from './services/authService';
 import { jobService } from './services/jobService';
@@ -202,6 +203,15 @@ const App: React.FC = () => {
             }}
             onDeleteJob={handleDeleteJob}
             onUpdateApplicationStatus={handleUpdateAppStatus}
+            onNavigate={setView}
+          />
+        )}
+
+        {view.name === 'CHAT' && user && (
+          <ChatView
+            user={user}
+            initialChatId={view.chatId}
+            onNavigate={setView}
           />
         )}
 

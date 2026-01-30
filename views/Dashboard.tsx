@@ -4,6 +4,7 @@ import { Job, User, UserRole, Application, ViewState } from '../types';
 import { Button } from '../components/ui/Button';
 import { generateJobDescription, recommendJobs, recommendCandidates } from '../services/geminiService';
 import { chatService } from '../services/chatService';
+import { jobService } from '../services/jobService';
 
 interface DashboardProps {
   user: User;
@@ -301,15 +302,23 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                   size="sm"
                                   className="bg-green-600 hover:bg-green-700 text-white"
                                   onClick={async () => {
-                                    onUpdateApplicationStatus(app.id, 'Accepted');
-                                    // Create chat for accepted application
                                     try {
-                                      const existingChat = await chatService.getChatByApplicationId(app.id);
-                                      if (!existingChat) {
-                                        await chatService.createChat(app, job?.title || 'Position', user.id);
+                                      // 1. Update status
+                                      await onUpdateApplicationStatus(app.id, 'Accepted');
+
+                                      // 2. Create or get chat
+                                      let chat = await chatService.getChatByApplicationId(app.id);
+                                      if (!chat) {
+                                        chat = await chatService.createChat(app, job?.title || 'Position', user.id);
+                                      }
+
+                                      // 3. Link chat to application (important for real-time)
+                                      if (chat) {
+                                        await jobService.linkChatToApplication(app.id, chat.id);
                                       }
                                     } catch (error) {
-                                      console.error('Error creating chat:', error);
+                                      console.error('Error in acceptance flow:', error);
+                                      alert("An error occurred while accepting. Please try again.");
                                     }
                                   }}
                                 >

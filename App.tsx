@@ -127,7 +127,7 @@ const App: React.FC = () => {
         seekerName: user.name,
         coverLetter
       });
-      setApplications([...applications, newApp]);
+      setApplications(prev => [...prev, newApp]);
       setView({ name: 'DASHBOARD' });
     } catch (error) {
       console.error("Error applying:", error);
@@ -138,7 +138,7 @@ const App: React.FC = () => {
   const handleUpdateAppStatus = async (appId: string, status: Application['status']) => {
     try {
       await jobService.updateApplicationStatus(appId, status);
-      setApplications(applications.map(app =>
+      setApplications(prev => prev.map(app =>
         app.id === appId ? { ...app, status } : app
       ));
     } catch (error) {

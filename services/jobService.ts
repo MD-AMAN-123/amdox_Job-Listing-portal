@@ -102,6 +102,14 @@ export const jobService = {
         if (error) throw error;
     },
 
+    linkChatToApplication: async (appId: string, chatId: string) => {
+        const { error } = await supabase
+            .from('applications')
+            .update({ chat_id: chatId })
+            .eq('id', appId);
+        if (error) throw error;
+    },
+
     subscribeToApplications: (onUpdate: (app: Application) => void) => {
         const channel = supabase
             .channel('public:applications')
@@ -142,5 +150,6 @@ const mapDbAppToApp = (a: any): Application => ({
     seekerName: a.seeker_name,
     status: a.status,
     appliedAt: new Date(a.applied_at),
-    coverLetter: a.cover_letter
+    coverLetter: a.cover_letter,
+    chatId: a.chat_id
 });
